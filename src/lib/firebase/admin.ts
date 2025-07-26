@@ -1,9 +1,8 @@
 import admin from 'firebase-admin';
 
-// This prevents re-initializing the app on every hot-reload in development
 if (!admin.apps.length) {
   const serviceAccount = JSON.parse(
-    process.env.FIREBASE_SERVICE_ACCOUNT_KEY as string
+    Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_KEY as string, 'base64').toString('utf-8')
   );
 
   admin.initializeApp({
