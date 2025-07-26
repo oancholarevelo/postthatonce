@@ -2,17 +2,18 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { UploadCloud, Link2, Facebook, Instagram, Linkedin, Send, X, Loader2, CheckCircle2, LogOut, Mail, KeyRound } from 'lucide-react';
 import { auth } from '@/lib/firebase/client';
-import { 
-  useAuthState, 
-  useSignInWithGoogle, 
-  useSignInWithGithub, 
-  useCreateUserWithEmailAndPassword, 
+import {
+  useAuthState,
+  useSignInWithGoogle,
+  useSignInWithGithub,
+  useCreateUserWithEmailAndPassword,
   useSignInWithEmailAndPassword,
   useSendEmailVerification
 } from 'react-firebase-hooks/auth';
-import { signIn, signOut, useSession } from 'next-auth/react';
+import { signIn, signOut } from 'next-auth/react';
 
 // Helper to create dynamic class names
 const cn = (...classes: (string | boolean | undefined)[]) => classes.filter(Boolean).join(' ');
@@ -44,7 +45,7 @@ export default function HomePage() {
   if (user) {
     return <AppDashboard user={user} />;
   }
-  
+
   return <LoginScreen />;
 }
 
@@ -70,7 +71,7 @@ const LoginScreen = () => {
     e.preventDefault();
     signInWithEmailAndPassword(email, password);
   }
-  
+
   const authError = errorGoogle || errorGithub || errorCreate || errorSign;
 
   return (
@@ -132,7 +133,7 @@ const EmailVerificationScreen = () => {
       <div className="bg-white/50 p-10 rounded-2xl shadow-lg max-w-md backdrop-blur-lg">
         <h2 className="text-2xl font-bold text-slate-800">Verify Your Email</h2>
         <p className="mt-4 text-slate-600">A verification link has been sent to your email address. Please click the link to continue.</p>
-        <button 
+        <button
           onClick={async () => await sendEmailVerification()}
           disabled={sending}
           className="mt-6 w-full inline-flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
@@ -219,7 +220,7 @@ const PostUploader = ({ user }: { user: import('firebase/auth').User }) => {
       reader.readAsDataURL(selectedFile);
     }
   };
-  
+
   const removeFile = () => {
       setFile(null);
       setFilePreview(null);
@@ -235,7 +236,7 @@ const PostUploader = ({ user }: { user: import('firebase/auth').User }) => {
       setPostStatus('error');
       return;
     }
-    
+
     setIsPosting(true);
     setPostStatus(null);
     setErrorMessage('');
@@ -246,7 +247,7 @@ const PostUploader = ({ user }: { user: import('firebase/auth').User }) => {
       const uploadResponse = await fetch('/api/upload', { method: 'POST', body: formData });
       const uploadResult = await uploadResponse.json();
       if (!uploadResponse.ok || !uploadResult.success) throw new Error(uploadResult.error || 'File upload failed.');
-      
+
       const media_url = uploadResult.result.secure_url;
       const media_type = uploadResult.result.resource_type;
 
@@ -299,7 +300,7 @@ const PostUploader = ({ user }: { user: import('firebase/auth').User }) => {
                     </div>
                 ) : (
                     <div className="relative group">
-                        {file && file.type.startsWith('image/') ? ( <img src={filePreview ?? ''} alt="Preview" className="w-full h-auto object-cover rounded-lg shadow-md" />) : (<video src={filePreview ?? ''} controls className="w-full h-auto rounded-lg shadow-md"></video>)}
+                        {file && file.type.startsWith('image/') ? ( <Image src={filePreview ?? ''} alt="Preview" width={500} height={500} className="w-full h-auto object-cover rounded-lg shadow-md" />) : (<video src={filePreview ?? ''} controls className="w-full h-auto rounded-lg shadow-md"></video>)}
                         <button onClick={removeFile} className="absolute top-2 right-2 bg-black/50 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity"><X size={18} /></button>
                     </div>
                 )}
@@ -307,12 +308,12 @@ const PostUploader = ({ user }: { user: import('firebase/auth').User }) => {
             <div>
                 <h2 className="form-section-title">Details</h2>
                 <label htmlFor="caption" className="block text-sm font-medium text-slate-700">Caption</label>
-                <textarea 
-                  id="caption" 
-                  rows={6} 
-                  className="w-full p-3 mt-1 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition" 
-                  placeholder="What's on your mind?" 
-                  value={caption} 
+                <textarea
+                  id="caption"
+                  rows={6}
+                  className="w-full p-3 mt-1 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
+                  placeholder="What's on your mind?"
+                  value={caption}
                   onChange={(e) => setCaption(e.target.value)}>
                 </textarea>
                 <div className="mt-6">
@@ -327,9 +328,9 @@ const PostUploader = ({ user }: { user: import('firebase/auth').User }) => {
             <div className="flex justify-end items-center gap-4">
                 {postStatus === 'success' && (<div className="flex items-center gap-2 text-green-600"><CheckCircle2 size={20} /><span className="font-medium">Posted Successfully!</span></div>)}
                 {postStatus === 'error' && (<div className="flex flex-col items-end text-red-600 text-right"><div className="flex items-center gap-2"><X size={20} /><span className="font-medium">Post failed.</span></div><p className="text-sm mt-1">{errorMessage}</p></div>)}
-                <button 
-                  onClick={handlePost} 
-                  disabled={isPosting || postStatus === 'success'} 
+                <button
+                  onClick={handlePost}
+                  disabled={isPosting || postStatus === 'success'}
                   className="inline-flex items-center justify-center sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg shadow-indigo-500/20 hover:shadow-xl hover:shadow-indigo-500/30 transition-all duration-300 disabled:bg-indigo-400 disabled:shadow-none disabled:cursor-not-allowed"
                 >
                     {isPosting ? (<><Loader2 className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" />Posting...</>) : (<><Send className="-ml-1 mr-2 h-5 w-5" />Publish Now</>)}
@@ -347,8 +348,7 @@ const PlatformToggle = ({ platform, isSelected, onToggle }: { platform: string, 
 };
 
 const AccountManager = () => {
-    const { data: session } = useSession(); 
-    const [accounts, setAccounts] = useState({
+    const [accounts] = useState({
         facebook: { connected: false, username: null },
         instagram: { connected: false, username: null },
         linkedin: { connected: false, username: null },
@@ -371,14 +371,14 @@ const AccountManager = () => {
 const AccountCard = ({ platform, details, onConnect, onDisconnect, disabled = false }: { platform: string, details: { connected: boolean, username: string | null }, onConnect: () => void, onDisconnect: () => void, disabled?: boolean }) => {
     const icons = { facebook: <Facebook size={24} className="text-blue-600" />, instagram: <Instagram size={24} className="text-pink-500" />, linkedin: <Linkedin size={24} className="text-sky-700" />, tiktok: <TikTokIcon size={24} /> };
     const platformName = platform.charAt(0).toUpperCase() + platform.slice(1);
-    
+
     return (
         <div className={`flex items-center justify-between p-4 border border-slate-200 rounded-lg ${disabled ? 'bg-slate-50 opacity-60' : ''}`}>
             <div className="flex items-center">
                 <div className="flex-shrink-0">{icons[platform as keyof typeof icons]}</div>
                 <div className="ml-4">
                     <p className="text-md font-semibold text-slate-800">{platformName}</p>
-                    {details.connected ? (<p className="text-sm text-slate-500">Connected as @{details.username}</p>) 
+                    {details.connected ? (<p className="text-sm text-slate-500">Connected as @{details.username}</p>)
                     : (<p className="text-sm text-slate-500">{disabled ? 'Currently unavailable' : 'Not connected'}</p>)}
                 </div>
             </div>
