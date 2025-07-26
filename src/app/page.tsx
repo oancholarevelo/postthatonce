@@ -1,11 +1,16 @@
 "use client"; // This is a client component
 
 import React, { useState } from 'react';
-import { UploadCloud, Link2, Facebook, Instagram, Linkedin, Send, X, Loader2, CheckCircle2, LogOut } from 'lucide-react';
-import { auth, db } from '@/lib/firebase/client';
-import { useAuthState } from 'react-firebase-hooks/auth';
-import { GoogleAuthProvider, GithubAuthProvider, signInWithPopup } from 'firebase/auth';
-import { addDoc, collection } from 'firebase/firestore';
+import { UploadCloud, Link2, Facebook, Instagram, Linkedin, Send, X, Loader2, CheckCircle2, LogOut, Mail, KeyRound } from 'lucide-react';
+import { auth } from '@/lib/firebase/client';
+import { 
+  useAuthState, 
+  useSignInWithGoogle, 
+  useSignInWithGithub, 
+  useCreateUserWithEmailAndPassword, 
+  useSignInWithEmailAndPassword,
+  useSendEmailVerification
+} from 'react-firebase-hooks/auth';
 
 // Helper to create dynamic class names
 const cn = (...classes: (string | boolean | undefined)[]) => classes.filter(Boolean).join(' ');
@@ -22,41 +27,127 @@ const TikTokIcon = ({ size = 24, ...props }: { size?: number } & React.SVGProps<
 export default function HomePage() {
   const [user, loading] = useAuthState(auth);
 
-  const signInWithGoogle = () => signInWithPopup(auth, new GoogleAuthProvider());
-  const signInWithGitHub = () => signInWithPopup(auth, new GithubAuthProvider());
-
   if (loading) {
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="min-h-screen flex items-center justify-center bg-gray-100">
             <Loader2 className="h-12 w-12 animate-spin text-indigo-600" />
         </div>
     )
   }
 
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
-        <div className="w-full max-w-sm mx-auto">
-            <div className="text-center mb-8">
-                <Send className="h-12 w-auto text-indigo-600 mx-auto" />
-                <h1 className="text-3xl font-bold text-gray-900 mt-4">Welcome to OmniPost</h1>
-                <p className="text-gray-600 mt-2">Sign in to continue</p>
-            </div>
-            <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-100 space-y-4">
-                <button onClick={signInWithGoogle} className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
-                    Sign in with Google
-                </button>
-                 <button onClick={signInWithGitHub} className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
-                    Sign in with GitHub
-                </button>
-            </div>
-        </div>
-      </div>
-    );
+  // If user exists but email is not verified, show verification message
+  if (user && !user.emailVerified) {
+    return <EmailVerificationScreen />;
   }
 
-  return <AppDashboard user={user} />;
+  // If user is logged in and verified, show the dashboard
+  if (user) {
+    return <AppDashboard user={user} />;
+  }
+  
+  // Otherwise, show the login form
+  return <LoginScreen />;
 }
+
+const LoginScreen = () => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+
+  const [signInWithGoogle, , , errorGoogle] = useSignInWithGoogle(auth);
+  const [signInWithGithub, , , errorGithub] = useSignInWithGithub(auth);
+  const [createUserWithEmailAndPassword, , loadingCreate, errorCreate] = useCreateUserWithEmailAndPassword(auth);
+  const [signInWithEmailAndPassword, , loadingSign, errorSign] = useSignInWithEmailAndPassword(auth);
+  const [sendEmailVerification] = useSendEmailVerification(auth);
+
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const newUser = await createUserWithEmailAndPassword(email, password);
+    if (newUser) {
+      await sendEmailVerification();
+    }
+  };
+
+  const handleSignIn = (e: React.FormEvent) => {
+    e.preventDefault();
+    signInWithEmailAndPassword(email, password);
+  }
+  
+  const authError = errorGoogle || errorGithub || errorCreate || errorSign;
+
+  return (
+    <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center p-4">
+      <div className="w-full max-w-sm mx-auto">
+          <div className="text-center mb-8">
+              <Send className="h-12 w-auto text-indigo-600 mx-auto" />
+              <h1 className="text-3xl font-bold text-gray-900 mt-4">Welcome to OmniPost</h1>
+              <p className="text-gray-600 mt-2">Sign in or create an account to continue</p>
+          </div>
+          <div className="bg-white p-8 rounded-2xl shadow-lg border border-gray-200">
+            <form onSubmit={handleSignIn} className="space-y-4">
+              <div>
+                <label className="text-sm font-medium text-gray-700 sr-only">Email</label>
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-0 flex items-center pl-3">
+                    <Mail className="h-5 w-5 text-gray-400" />
+                  </span>
+                  <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email address" required className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"/>
+                </div>
+              </div>
+               <div>
+                <label className="text-sm font-medium text-gray-700 sr-only">Password</label>
+                 <div className="relative">
+                  <span className="absolute inset-y-0 left-0 flex items-center pl-3">
+                    <KeyRound className="h-5 w-5 text-gray-400" />
+                  </span>
+                  <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password" required className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"/>
+                </div>
+              </div>
+              <div className="flex items-center justify-between gap-4 pt-2">
+                <button type="button" onClick={handleSignUp} disabled={loadingCreate} className="w-full inline-flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50">
+                   {loadingCreate ? <Loader2 className="animate-spin h-5 w-5"/> : 'Sign Up'}
+                </button>
+                <button type="submit" disabled={loadingSign} className="w-full inline-flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50">
+                  {loadingSign ? <Loader2 className="animate-spin h-5 w-5"/> : 'Sign In'}
+                </button>
+              </div>
+            </form>
+            <div className="mt-6 relative">
+              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-300" /></div>
+              <div className="relative flex justify-center text-sm"><span className="px-2 bg-white text-gray-500">Or continue with</span></div>
+            </div>
+            <div className="mt-6 grid grid-cols-2 gap-3">
+              <button onClick={() => signInWithGoogle()} className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">Google</button>
+              <button onClick={() => signInWithGithub()} className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">GitHub</button>
+            </div>
+            {authError && <p className="mt-4 text-center text-sm text-red-600">{authError.message}</p>}
+          </div>
+      </div>
+    </div>
+  );
+}
+
+const EmailVerificationScreen = () => {
+  const [sendEmailVerification, sending] = useSendEmailVerification(auth);
+  return (
+    <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center p-4 text-center">
+      <div className="bg-white p-10 rounded-2xl shadow-lg max-w-md">
+        <h2 className="text-2xl font-bold text-gray-800">Verify Your Email</h2>
+        <p className="mt-4 text-gray-600">A verification link has been sent to your email address. Please click the link to continue.</p>
+        <button 
+          onClick={async () => await sendEmailVerification()}
+          disabled={sending}
+          className="mt-6 w-full inline-flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+        >
+          {sending ? 'Sending...' : 'Resend Verification Email'}
+        </button>
+        <button onClick={() => auth.signOut()} className="mt-4 text-sm text-gray-500 hover:underline">
+          Use a different account
+        </button>
+      </div>
+    </div>
+  );
+};
+
 
 // The main application UI for logged-in users
 const AppDashboard = ({ user }: { user: import('firebase/auth').User }) => {
