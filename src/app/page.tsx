@@ -271,9 +271,13 @@ const PostUploader = ({ user }: { user: import('firebase/auth').User }) => {
           setPostStatus(null);
       }, 3000);
 
-    } catch (error: any) {
+    } catch (error) {
         setPostStatus('error');
-        setErrorMessage(error.message || "An unknown error occurred.");
+        if (error instanceof Error) {
+          setErrorMessage(error.message);
+        } else {
+          setErrorMessage("An unknown error occurred.");
+        }
     } finally {
         setIsPosting(false);
     }
